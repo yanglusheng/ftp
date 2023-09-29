@@ -1,0 +1,3 @@
+ftp 服务器 客户端
+支持基本命令：ls, pwd, cd, put, get等。
+
