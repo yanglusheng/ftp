@@ -140,7 +140,6 @@ long int ftp_get_reply(int sock_fd) {
     char rcv_buf[512];
     char *endptr;
     count = read(sock_fd, rcv_buf, 510);
-    printf("%ld\n",count);
     if (count > 0)
         reply_code = strtol(rcv_buf, &endptr, 10);
     else
@@ -600,29 +599,32 @@ void get_pass() {
 }
 
 //login to the server
-int ftp_login() {
+void ftp_login() {
     long int err;
-    get_user();
-    if (ftp_send_cmd("USER ", user, sock_control) < 0)
-        cmd_err_exit("Can not send message", 1);
 
-    err = ftp_get_reply(sock_control);
-
-    if (err == 331) {
-        get_pass();
-        if (ftp_send_cmd("PASS ", passwd, sock_control) <= 0)
+    while (true) {
+        get_user();
+        if (ftp_send_cmd("USER ", user, sock_control) < 0)
             cmd_err_exit("Can not send message", 1);
-        else
-            err = ftp_get_reply(sock_control);
-        if (err == 230 || err == 531)
-            return 1;
+        err = ftp_get_reply(sock_control);
+        if (err == 331)
+            break;
         else {
-            printf("Password error!\n");
-            return 0;
+            printf("Username error!\n");
         }
-    } else {
-        printf("User error!\n");
-        return 0;
+    }
+
+    while (true) {
+        get_pass();
+        if (ftp_send_cmd("PASS ", passwd, sock_control) < 0) {
+            cmd_err_exit("Can not send message", 1);
+        }
+        err = ftp_get_reply(sock_control);
+        if (err == 230) {
+            break;
+        } else {
+            printf("Password error!\n");
+        }
     }
 }
 
@@ -676,9 +678,8 @@ void start_ftp_cmd(const char *host_ip_addr, long int port) {
 
     if (ftp_get_reply(sock_control) != 220)
         cmd_err_exit("Connect error!", 220);
-    do {
-        err = ftp_login();
-    } while (err != 1);
+
+    ftp_login();
 
     while (true) {
         printf("ftp_cli>");
@@ -762,6 +763,9 @@ void open_ftpsrv() {
         cmd_flag = ftp_usr_cmd(usr_cmd);
         if (cmd_flag == 15) {
             start_ftp_cmd("127.0.0.1", DEFAULT_FTP_PORT);
+        }
+        if (cmd_flag == 6) {
+            break;
         }
     }
 }

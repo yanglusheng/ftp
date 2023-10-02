@@ -149,43 +149,38 @@ int login(int client_sock) {
 
     send_client_info(client_sock, serverInfo220, strlen(serverInfo220));
 
+    /* 验证用户名 */
     while (true) {
-        if (recv_client_info(client_sock) == 2) break;
-        else send_client_info(client_sock, serverInfo, strlen(serverInfo));
-    }
-
-    size_t length = strlen(client_Control_Info);
-    int i;
-    for (i = 5; i < length; i++) {
-        format_client_Info[i - 5] = client_Control_Info[i];
-    }
-    format_client_Info[i - 5] = '\0';
-
-    /**
-     * 验证用户名
-     */
-    if (strncmp(format_client_Info, "root", 4) == 0) {
-        send_client_info(client_sock, serverInfo331, strlen(serverInfo331));
         recv_client_info(client_sock);
-    } else {
-        send_client_info(client_sock, serverInfo530, strlen(serverInfo530));
-        return 0;
+        size_t length = strlen(client_Control_Info);
+        int i;
+        for (i = 5; i < length; i++) {
+            format_client_Info[i - 5] = client_Control_Info[i];
+        }
+        format_client_Info[i - 5] = '\0';
+
+        if (strncmp(format_client_Info, "root", 4) == 0) {
+            send_client_info(client_sock, serverInfo331, strlen(serverInfo331));
+            break;
+        } else send_client_info(client_sock, serverInfo530, strlen(serverInfo));
     }
 
-    for (i = 5; i < length; i++) {
-        format_client_Info[i - 5] = client_Control_Info[i];
-    }
-    format_client_Info[i - 5] = '\0';
+    /* 验证密码 */
+    while (true) {
+        recv_client_info(client_sock);
+        size_t length = strlen(client_Control_Info);
+        int i;
+        for (i = 5; i < length; i++) {
+            format_client_Info[i - 5] = client_Control_Info[i];
+        }
+        format_client_Info[i - 5] = '\0';
 
-    /**
-     * 验证密码
-     */
-    if (strncmp(format_client_Info, "1234", 4) == 0) {
-        send_client_info(client_sock, serverInfo230, strlen(serverInfo230));
-        return 1;
-    } else {
-        send_client_info(client_sock, serverInfo530, strlen(serverInfo530));
-        return 0;
+        if (strncmp(format_client_Info, "1234", 4) == 0) {
+            send_client_info(client_sock, serverInfo230, strlen(serverInfo230));
+            break;
+        } else {
+            send_client_info(client_sock, serverInfo530, strlen(serverInfo));
+        }
     }
 }
 
@@ -361,7 +356,7 @@ struct sockaddr_in create_data_sock() {
     t_data_addr.sin_family = AF_INET;
     t_data_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     t_data_addr.sin_port = htons(a);
-    printf("%ld\n",a);
+    printf("%ld\n", a);
     if (bind(t_client_sock, (struct sockaddr *) &t_data_addr, sizeof(struct sockaddr)) < 0) {
         printf("bind error in create data socket:%s\n", strerror(errno));
         return {};
@@ -380,15 +375,12 @@ void send_client_info(int client_sock, char *info, size_t length) {
 }
 
 int recv_client_info(int client_sock) {
+    memset(client_Control_Info, '\0', MAX_INFO);
     ssize_t num;
     if ((num = recv(client_sock, client_Control_Info, MAX_INFO, 0)) < 0) {
         perror("receive info error");
         return 0;
     }
-    client_Control_Info[num] = '\0';
-    printf("%s\n", client_Control_Info);
-    if (strncmp("USER", client_Control_Info, 4) == 0 || strncmp("user", client_Control_Info, 4) == 0)
-        return 2;
     return 1;
 }
 
