@@ -163,8 +163,6 @@ public:
             write(data_connfd, &t_char, 1);
         }
         pclose(pipe_fp);
-        close(data_connfd);
-        close(data_sockfd);
     }
 
     void handle_file(){
